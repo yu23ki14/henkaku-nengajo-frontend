@@ -90,6 +90,7 @@ const Entity = () => {
       await sendMetaTx()
       return
     } catch (error: any) {
+      console.log(error)
       toast({
         id: 'MINT_NENGAJO_MTX_FAILED',
         title: error?.message,

@@ -14,6 +14,7 @@ import {
 } from 'wagmi'
 import { getContractAddress } from '@/utils/contractAddresses'
 import { Nengajo } from '@/types'
+import axios from 'axios'
 
 const chainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID)
 
@@ -102,14 +103,9 @@ export const useMintNengajoWithMx = () => {
         data
       })
 
-      const res = await fetch(AUTOTASK_WEBHOOK_URL, {
-        method: 'POST',
-        body: JSON.stringify(request),
-        headers: { 'Content-Type': 'application/json' }
-      })
-      const body = res?.body as any
-      if (body.status === 'error') {
-        throw new Error(body)
+      const { data: resData } = await axios.post(AUTOTASK_WEBHOOK_URL, request)
+      if (resData.status === 'error') {
+        throw resData
       }
       return
     } catch (error) {
