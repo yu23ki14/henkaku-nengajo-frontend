@@ -16,7 +16,6 @@ import { useUploadImageFile, useUploadMetadataJson } from '@/hooks/usePinata'
 import { useAccount } from 'wagmi'
 import { useRouter } from 'next/router'
 import { useLitEncryption } from '@/hooks/useLitProtocol'
-import CheckHenkaku from './CheckHenkaku'
 
 type FormData = {
   name: string
