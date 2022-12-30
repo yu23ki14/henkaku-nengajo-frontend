@@ -20,7 +20,7 @@ const chainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID)
 const PUBLIC_NENGAJO_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_NENGAJO_ADDRESS!
 const FORWARDER_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_FORWARDER_ADDRESS!
 const AUTOTASK_WEBHOOK_URL =
-  'https://api.defender.openzeppelin.com/autotasks/008e597e-1e35-436a-ad15-71a39c28cbde/runs/webhook/2dbd80b0-06b2-4b00-8468-612f6466e5e8/3BQpsKufqfkQbBearjpRFP'
+  'https://api.defender.openzeppelin.com/autotasks/87f03794-a23e-4c3c-9c6e-cd7d2bd5b205/runs/webhook/2dbd80b0-06b2-4b00-8468-612f6466e5e8/TFd8s8Gafr36WaNNBpPXzo'
 
 const usePrepareNengajoContractWrite = (functionName: string, args: any[]) => {
   const { config } = usePrepareContractWrite({
