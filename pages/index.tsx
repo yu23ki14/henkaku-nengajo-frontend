@@ -171,7 +171,7 @@ const Entity = () => {
               <ButtonElm />
             )}
 
-            {isHolding && <SecretMessage metadata={nengajoInfo} />}
+            {showNFTImage && <SecretMessage metadata={nengajoInfo} />}
           </Box>
         </Flex>
       </Grid>

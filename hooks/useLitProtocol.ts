@@ -31,7 +31,7 @@ const chainName = (chainId: number) => {
 const generateAccessControlConditions = (tokenId: number, chainId: number) => {
   return [
     {
-      contractAddress: contractAddresses['nengajo'][chainId],
+      contractAddress: process.env.NEXT_PUBLIC_CONTRACT_NENGAJO_ADDRESS!,
       standardContractType: 'ERC1155',
       chain: chainName(chainId),
       method: 'balanceOf',
