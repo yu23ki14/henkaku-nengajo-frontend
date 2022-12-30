@@ -1,105 +1,187 @@
-import type { NextPage } from 'next'
+import { Connect } from '@/components'
+import CountDown from '@/components/CountDown'
+import GlobalIcon from '@/components/Icon/Global'
+import Layout from '@/components/Layout'
+import SecretMessage from '@/components/MintNengajo/SecretMessage'
+import { useChainId, useMounted } from '@/hooks'
+import { useCountdown } from '@/hooks/useCountdown'
+import {
+  useCurrentSupply,
+  useIsHoldingByTokenId,
+  useMintNengajoWithMx,
+  useRetrieveNengajoByTokenId
+} from '@/hooks/useNengajoContract'
+import { useNengajoInfo } from '@/hooks/useNengajoInfo'
 import {
   Box,
   Button,
-  Divider,
   Flex,
+  Grid,
   Heading,
+  Spinner,
   Text,
   useToast
 } from '@chakra-ui/react'
-import { useAccount } from 'wagmi'
-import { useMounted, useApproval, useChainId } from '@/hooks'
-import { useRetrieveAllNengajo } from '@/hooks/useNengajoContract'
-import { getContractAddress } from '@/utils/contractAddresses'
-import Layout from '@/components/Layout'
-import { Connect } from '@/components/Connect'
-import { Approve } from '@/components/Approve'
-import NengajoesList from '@/components/NengajoesList'
-import StatusMenu from '@/components/StatusMenu'
+import setLanguage from 'next-translate/setLanguage'
 import useTranslation from 'next-translate/useTranslation'
-import CountDown from '@/components/CountDown'
-import { useCountdown } from '@/hooks/useCountdown'
-import Link from 'next/link'
+import Image from 'next/image'
+import { FC, useMemo } from 'react'
+import { useAccount, useSwitchNetwork } from 'wagmi'
 
-const Home: NextPage = () => {
-  const { chainId, wrongNetwork } = useChainId()
-  const henkakuV2 = getContractAddress({
-    name: 'henkakuErc20',
-    chainId: chainId
-  }) as `0x${string}`
-  const nengajo = getContractAddress({
-    name: 'nengajo',
-    chainId: chainId
-  }) as `0x${string}`
-  const isMounted = useMounted()
-  const { t } = useTranslation('common')
-  const { address, isConnected } = useAccount()
-  const { approved } = useApproval(henkakuV2, nengajo, address)
-  const { data, isError } = useRetrieveAllNengajo()
-
-  const toast = useToast()
-  if (isError && isConnected && !toast.isActive('RETRIEVE_NENGAJOES_FAILED'))
-    toast({
-      id: 'RETRIEVE_NENGAJOES_FAILED',
-      title: t('CLAIM.TOAST.RETRIEVE_NENGAJOES_FAILED'),
-      status: 'error',
-      duration: 5000,
-      position: 'top'
-    })
-
+const CountDownElm: FC = () => {
+  const { t, lang } = useTranslation('common')
   const { isStart, ...countDown } = useCountdown()
+  return (
+    <Box textAlign="center">
+      <Heading
+        size="lg"
+        mb={10}
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+      >
+        <span className="text_nengajo">{t('NENGAJO')}</span>
+        <Button
+          ml={2}
+          size="md"
+          onClick={async () => await setLanguage(lang == 'en' ? 'ja' : 'en')}
+        >
+          <GlobalIcon />
+        </Button>
+      </Heading>
+
+      <Text fontSize="24px" fontWeight="bold" lineHeight={2}>
+        {isStart ? (
+          <>
+            {t('TOP_MINT_START_AKEOME')}
+            <br />
+            {t('TOP_MINT_START_READY')}
+          </>
+        ) : (
+          <>{t('TOP_UNTIL_START')}</>
+        )}
+      </Text>
+      {!isStart && <CountDown data={countDown} />}
+    </Box>
+  )
+}
+
+const Entity = () => {
+  const { isConnected, address } = useAccount()
+  const {
+    sendMetaTx,
+    isLoading: isLoadingTx,
+    isSuccess
+  } = useMintNengajoWithMx()
+  const { data: currentSupply, isLoading: isLoadingCurrentSupply } =
+    useCurrentSupply()
+  const { isHolding, isLoading: isLoadingHold } = useIsHoldingByTokenId(1)
+  const { wrongNetwork } = useChainId()
+  const { switchNetworkAsync, status: switchNetworkStatus } = useSwitchNetwork({
+    chainId: 80001
+  })
+  const toast = useToast()
+  const tokenInfo = useRetrieveNengajoByTokenId(1)
+  const { nengajoInfo } = useNengajoInfo(tokenInfo.data)
+
+  const submit = async () => {
+    try {
+      await sendMetaTx()
+    } catch (error: any) {
+      toast({
+        id: 'MINT_NENGAJO_MTX_FAILED',
+        title: error?.message,
+        status: 'error',
+        duration: 5000,
+        position: 'top'
+      })
+    }
+  }
+
+  const showNFTImage = useMemo(() => {
+    if (isHolding || currentSupply?.toNumber() === 100 || isSuccess) {
+      return true
+    } else {
+      return false
+    }
+  }, [isHolding, currentSupply, isSuccess])
+
+  const ButtonElm: FC = () => {
+    if (isConnected && wrongNetwork && switchNetworkAsync) {
+      return (
+        <Button
+          size="lg"
+          colorScheme="teal"
+          borderRadius="full"
+          onClick={() =>
+            switchNetworkAsync(Number(process.env.NEXT_PUBLIC_CHAIN_ID!))
+          }
+          isLoading={switchNetworkStatus === 'loading'}
+        >
+          Change Network
+        </Button>
+      )
+    } else if (isConnected) {
+      return (
+        <Button
+          size="lg"
+          colorScheme="teal"
+          borderRadius="full"
+          onClick={submit}
+          isLoading={isLoadingTx}
+        >
+          Mint Nengajo NFT
+        </Button>
+      )
+    } else {
+      return <Connect />
+    }
+  }
 
   return (
-    <Layout>
-      <Box textAlign="center">
-        <Text fontSize="24px" fontWeight="bold" lineHeight={2}>
-          {isStart ? (
-            <>
-              {t('TOP_MINT_START_AKEOME')}
-              <br />
-              {t('TOP_MINT_START_READY')}
-            </>
-          ) : (
-            <>{t('TOP_UNTIL_START')}</>
-          )}
-        </Text>
-        {isMounted && !isStart && <CountDown data={countDown} />}
-      </Box>
-      {isMounted && (
-        <Box textAlign="center">
-          <Box mt="2em" display="inline-block">
-            {!isStart && (
-              <Link href="/create">
-                <Button
-                  colorScheme="teal"
-                  borderRadius="full"
-                  mb={3}
-                  width="full"
-                  size="lg"
-                >
-                  {t('CREATE_LINK')}
-                </Button>
-              </Link>
+    <Layout disableHeader>
+      <CountDownElm />
+
+      <Grid gridTemplateColumns={{ md: '1fr 1fr' }} my={8} columnGap={5}>
+        <Box filter={showNFTImage ? 'none' : 'blur(10px)'}>
+          <Image width="400px" height="400px" src="/nengajo.jpg" />
+        </Box>
+
+        <Flex justifyContent="center" alignItems="center" textAlign="center">
+          <Box>
+            <Text fontSize="18px" fontWeight="bold">
+              {isLoadingCurrentSupply ? (
+                <Spinner />
+              ) : (
+                `${currentSupply?.toNumber()} / 100`
+              )}
+            </Text>
+            <Text fontSize="18px" fontWeight="bold" mb={10}>
+              Wallet Address: {address?.substring(0, 10)}...
+            </Text>
+
+            {showNFTImage ? (
+              <Text>
+                受け取っていただいてありがとうございます。
+                <br />
+                来年もどうぞよろしくおねがいします。
+              </Text>
+            ) : (
+              <ButtonElm />
             )}
-            <Flex gap={6} justifyContent="center" textAlign="left">
-              <Connect />
-              <StatusMenu />
-            </Flex>
+
+            {isHolding && <SecretMessage metadata={nengajoInfo} />}
           </Box>
-        </Box>
-      )}
-      <Divider my={10} borderWidth="2px" />
-      {isMounted && data && (
-        <Box>
-          <Heading size="lg" mb={5}>
-            {t('REGISTERD_NENGAJO_LIST')}
-          </Heading>
-          {<NengajoesList items={data} />}
-        </Box>
-      )}
+        </Flex>
+      </Grid>
     </Layout>
   )
 }
 
-export default Home
+const PodcastMintPage: FC = () => {
+  const isMounted = useMounted()
+
+  return isMounted ? <Entity /> : <></>
+}
+
+export default PodcastMintPage

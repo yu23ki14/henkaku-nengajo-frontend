@@ -1,4 +1,6 @@
 import { useLitDecryption } from '@/hooks/useLitProtocol'
+import { useRetrieveNengajoByTokenId } from '@/hooks/useNengajoContract'
+import { NengajoInfoProps, useNengajoInfo } from '@/hooks/useNengajoInfo'
 import {
   Box,
   Button,
@@ -15,25 +17,19 @@ import {
 import { FC, useCallback, useMemo, useState } from 'react'
 
 type Props = {
-  encryptedFile: string
-  encryptedSymmetricKey: string
-  tokenId: number
+  metadata?: NengajoInfoProps
 }
 
-const SecretMessage: FC<Props> = ({
-  encryptedFile,
-  encryptedSymmetricKey,
-  tokenId
-}) => {
-  const { decrypt } = useLitDecryption(tokenId)
+const SecretMessage: FC<Props> = ({ metadata }) => {
+  const { decrypt } = useLitDecryption(1)
   const [message, setMessage] = useState<string>()
   const { isOpen, onOpen, onClose } = useDisclosure()
 
   const decryptMessage = useCallback(async () => {
     if (!message) {
       const decryptedMessage = await decrypt(
-        encryptedFile,
-        encryptedSymmetricKey
+        metadata?.tokenURIJSON.encryptedFile!,
+        metadata?.tokenURIJSON.encryptedSymmetricKey!
       )
       let binary = ''
       const bytes = new Uint8Array(decryptedMessage?.decryptedFile)
@@ -44,7 +40,7 @@ const SecretMessage: FC<Props> = ({
       setMessage(window.btoa(binary))
     }
     onOpen()
-  }, [decrypt])
+  }, [decrypt, metadata])
 
   return (
     <Box>
@@ -54,8 +50,11 @@ const SecretMessage: FC<Props> = ({
         colorScheme="teal"
         height="auto"
         py={2}
+        lineHeight={1.4}
+        isLoading={!metadata}
+        disabled={!metadata}
       >
-        この年賀状ホルダーだけが読める
+        NFTホルダー限定の
         <br />
         メッセージ・カードをみる
       </Button>

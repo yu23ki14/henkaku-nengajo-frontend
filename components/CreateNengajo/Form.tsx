@@ -33,7 +33,6 @@ interface NengajoTokenMetadata {
   description?: string | null | undefined
   animation_url?: string | null | undefined
   external_url?: string | null | undefined
-  contributors: string
   encryptedFile?: string
   encryptedSymmetricKey?: string
   attributes: TokenAttribute[]
@@ -48,9 +47,7 @@ interface TokenAttribute {
   order?: number | null | undefined
 }
 
-const metadata_external_url = 'https://nengajo.henkaku.org'
-const metadata_contributors =
-  'daishin;FLOTAN;futa;geeknees;imaichiyyy;mindinc;karawapo;RYU;sushi yam;yawn;Yuki aka Ryoma;Yuudai;'
+const metadata_external_url = 'https://twitter.com/k_0214'
 
 const CreateNengajoForm: FC = () => {
   const { t, lang } = useTranslation('common')
@@ -61,15 +58,12 @@ const CreateNengajoForm: FC = () => {
 
   const { control, handleSubmit, formState, watch } = useForm<FormData>({
     defaultValues: {
-      name: '',
-      description:
-        lang === 'en'
-          ? 'This is a Nengajo NFT sent with HENKAKU NENGAJO.'
-          : 'HENKAKU NENGAJO から送られた年賀状NFTです。',
+      name: 'HAPPY NEW YEAR 2023',
+      description: 'Happy New Year 2023 NFT for my friends from Yuki.',
       image: null,
       secretMessage: null,
-      creatorName: '',
-      maxSupply: 10
+      creatorName: 'yuki0214.eth',
+      maxSupply: 100
     }
   })
   const [metadataURI, setMetadataURI] = useState('')
@@ -89,7 +83,7 @@ const CreateNengajoForm: FC = () => {
         if (encryptedSymmetricKey) {
           await updateEncrypt(registeredTokenId, encryptedSymmetricKey)
         }
-        router.push(`/nengajo/${registeredTokenId}`)
+        router.push(`/`)
       }
     }
     callback()
@@ -104,7 +98,6 @@ const CreateNengajoForm: FC = () => {
         image: `ipfs://${imageIPFSHash}`,
         description: data.description,
         external_url: metadata_external_url,
-        contributors: metadata_contributors,
         attributes: [
           {
             trait_type: 'CreatorAddress',
@@ -301,7 +294,6 @@ const CreateNengajoForm: FC = () => {
                     onChange={onChange}
                     value={value}
                   />
-                  <CheckHenkaku maxSupply={watch('maxSupply')} />
                 </Flex>
                 <Box color="red.300">{fieldState.error?.message}</Box>
               </>

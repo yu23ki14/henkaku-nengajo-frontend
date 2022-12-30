@@ -1,22 +1,31 @@
+import { BigNumber, ethers } from 'ethers'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import FowarderABI from '@/abi/Forwarder.json'
+import PublicNengajoABI from '@/abi/PublicNengajo.json'
+import { signMetaTxRequest } from '@/utils/signer'
 import {
   useAccount,
+  useContract,
   useContractEvent,
   useContractRead,
   useContractWrite,
-  usePrepareContractWrite
+  usePrepareContractWrite,
+  useSigner
 } from 'wagmi'
 import { getContractAddress } from '@/utils/contractAddresses'
-import NengajoABI from '@/abi/Nengajo.json'
 import { Nengajo } from '@/types'
-import { useEffect, useMemo, useState } from 'react'
-import { BigNumber } from 'ethers'
 
 const chainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID)
+
+const PUBLIC_NENGAJO_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_NENGAJO_ADDRESS!
+const FORWARDER_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_FORWARDER_ADDRESS!
+const AUTOTASK_WEBHOOK_URL =
+  'https://api.defender.openzeppelin.com/autotasks/008e597e-1e35-436a-ad15-71a39c28cbde/runs/webhook/2dbd80b0-06b2-4b00-8468-612f6466e5e8/3BQpsKufqfkQbBearjpRFP'
 
 const usePrepareNengajoContractWrite = (functionName: string, args: any[]) => {
   const { config } = usePrepareContractWrite({
     address: getContractAddress({ name: 'nengajo', chainId }),
-    abi: NengajoABI.abi,
+    abi: PublicNengajoABI.abi,
     functionName,
     args,
     overrides: {
@@ -29,7 +38,7 @@ const usePrepareNengajoContractWrite = (functionName: string, args: any[]) => {
 const useNengajoContractRead = (functionName: string, args: unknown[] = []) => {
   const result = useContractRead({
     address: getContractAddress({ name: 'nengajo', chainId }),
-    abi: NengajoABI.abi,
+    abi: PublicNengajoABI.abi,
     functionName,
     args
   })
@@ -42,45 +51,77 @@ const useNengajoContractEvent = (
 ) => {
   useContractEvent({
     address: getContractAddress({ name: 'nengajo', chainId }),
-    abi: NengajoABI.abi,
+    abi: PublicNengajoABI.abi,
     eventName,
     listener
   })
 }
 
-export const useRegisterNengajo = (maxSupply: number, metadataURI: string) => {
-  const [registeredTokenId, setRegisteredTokenId] = useState<number>()
-  const config = usePrepareNengajoContractWrite('registerNengajo', [
-    maxSupply,
-    metadataURI || 'ipfs://xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
-  ])
-  const { data, isLoading, isSuccess, writeAsync } = useContractWrite(config)
-  useNengajoContractEvent(
-    'RegisterNengajo',
-    (creator, _tokenId, metaDataURL, maxSupply) => {
-      setRegisteredTokenId(_tokenId)
-    }
-  )
-
-  return { data, isLoading, isSuccess, writeAsync, registeredTokenId }
-}
-
-export const useMintNengajo = (id: number) => {
-  const [minted, setMinted] = useState(false)
+export const useMintNengajoWithMx = () => {
+  const { data: signer } = useSigner()
+  const nengajoContract = useContract({
+    address: PUBLIC_NENGAJO_ADDRESS,
+    abi: PublicNengajoABI.abi
+  })
   const { address } = useAccount()
-  const config = usePrepareNengajoContractWrite('mint', [id])
-  const { data, isLoading, isSuccess, writeAsync } = useContractWrite(config)
-  useNengajoContractEvent('Mint', (minter: string, tokenId: BigNumber) => {
-    if (tokenId.toNumber() === id && minter === address) {
-      setMinted(true)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isSuccess, setSuccess] = useState(false)
+
+  useContractEvent({
+    address: PUBLIC_NENGAJO_ADDRESS,
+    abi: PublicNengajoABI.abi,
+    eventName: 'Mint',
+    listener: (minter: string, tokenId: BigNumber) => {
+      if (minter === address && tokenId.toNumber() === 1) {
+        setIsLoading(false)
+        setSuccess(true)
+      }
     }
   })
-  return { data, isLoading, isSuccess, writeAsync, minted }
+
+  const sendMetaTx = useCallback(async () => {
+    try {
+      if (!signer || !nengajoContract) return
+      setIsLoading(true)
+
+      const forwarder = new ethers.Contract(
+        FORWARDER_ADDRESS,
+        FowarderABI.abi,
+        signer
+      )
+
+      const from = await signer.getAddress()
+      const data = nengajoContract.interface.encodeFunctionData('mint', [1])
+      const to = nengajoContract.address
+
+      if (!signer.provider) throw new Error('Provider is not set')
+
+      const request = await signMetaTxRequest(signer.provider, forwarder, {
+        to,
+        from,
+        data
+      })
+
+      return fetch(AUTOTASK_WEBHOOK_URL, {
+        method: 'POST',
+        body: JSON.stringify(request),
+        headers: { 'Content-Type': 'application/json' }
+      })
+    } catch (error) {
+      setIsLoading(false)
+      throw error
+    }
+  }, [signer])
+
+  return { sendMetaTx, isLoading, isSuccess }
 }
 
-export const useBatchMintNengajoes = (id: number[]) => {
-  // TODO: BatchMint
-  return
+export const useCurrentSupply = () => {
+  const { data, isError, isLoading } = useNengajoContractRead('totalSupply', [
+    1
+  ]) as { data: BigNumber; isLoading: boolean; isError: boolean }
+
+  return { data, isError, isLoading }
 }
 
 export const useRetrieveNengajoByTokenId = (tokenId: number) => {
@@ -93,30 +134,6 @@ export const useRetrieveNengajoByTokenId = (tokenId: number) => {
     isError: boolean
   }
 
-  return { data, isLoading, isError }
-}
-
-export const useRetrieveHoldingNengajoesByAddress = (address: string) => {
-  const { data, isLoading, isError } = useNengajoContractRead(
-    'retrieveMintedNengajoes',
-    [address]
-  ) as {
-    data: Nengajo.NengajoInfoStructOutput[]
-    isLoading: boolean
-    isError: boolean
-  }
-
-  return { data, isLoading, isError }
-}
-
-export const useRetrieveAllNengajo = () => {
-  const { data, isError, isLoading } = useNengajoContractRead(
-    'retrieveAllNengajoes'
-  ) as {
-    data: Nengajo.NengajoInfoStructOutput[]
-    isLoading: boolean
-    isError: boolean
-  }
   return { data, isLoading, isError }
 }
 
@@ -143,14 +160,19 @@ export const useIsHoldingByTokenId = (tokenId: number) => {
   return { isHolding, isLoading, isError }
 }
 
-export const useCalcRequiredHenkakuAmount = (maxSupply: number) => {
-  const normalizedMaxSupply = useMemo(() => {
-    return Number(maxSupply) ? Number(maxSupply) : 0
-  }, [maxSupply])
+export const useRegisterNengajo = (maxSupply: number, metadataURI: string) => {
+  const [registeredTokenId, setRegisteredTokenId] = useState<number>()
+  const config = usePrepareNengajoContractWrite('registerNengajo', [
+    maxSupply,
+    metadataURI || 'ipfs://xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+  ])
+  const { data, isLoading, isSuccess, writeAsync } = useContractWrite(config)
+  useNengajoContractEvent(
+    'RegisterNengajo',
+    (creator, _tokenId, metaDataURL, maxSupply) => {
+      setRegisteredTokenId(_tokenId)
+    }
+  )
 
-  const { data, isLoading } = useNengajoContractRead('calcPrice', [
-    normalizedMaxSupply
-  ]) as { data: BigNumber; isLoading: boolean }
-
-  return { data, isLoading }
+  return { data, isLoading, isSuccess, writeAsync, registeredTokenId }
 }
