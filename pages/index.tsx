@@ -67,6 +67,7 @@ const CountDownElm: FC = () => {
 }
 
 const Entity = () => {
+  const { t } = useTranslation('common')
   const { isConnected, address } = useAccount()
   const {
     sendMetaTx,
@@ -78,7 +79,7 @@ const Entity = () => {
   const { isHolding, isLoading: isLoadingHold } = useIsHoldingByTokenId(1)
   const { wrongNetwork } = useChainId()
   const { switchNetworkAsync, status: switchNetworkStatus } = useSwitchNetwork({
-    chainId: 80001
+    chainId: 137
   })
   const toast = useToast()
   const tokenInfo = useRetrieveNengajoByTokenId(1)
@@ -162,9 +163,9 @@ const Entity = () => {
 
             {showNFTImage ? (
               <Text>
-                受け取っていただいてありがとうございます。
+                {t('THANK_YOU_FOR_MINT')}
                 <br />
-                来年もどうぞよろしくおねがいします。
+                {t('GREET_THIS_YEAR')}
               </Text>
             ) : (
               <ButtonElm />
