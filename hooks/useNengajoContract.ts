@@ -24,7 +24,7 @@ const AUTOTASK_WEBHOOK_URL =
 
 const usePrepareNengajoContractWrite = (functionName: string, args: any[]) => {
   const { config } = usePrepareContractWrite({
-    address: getContractAddress({ name: 'nengajo', chainId }),
+    address: PUBLIC_NENGAJO_ADDRESS,
     abi: PublicNengajoABI.abi,
     functionName,
     args,
@@ -37,7 +37,7 @@ const usePrepareNengajoContractWrite = (functionName: string, args: any[]) => {
 
 const useNengajoContractRead = (functionName: string, args: unknown[] = []) => {
   const result = useContractRead({
-    address: getContractAddress({ name: 'nengajo', chainId }),
+    address: PUBLIC_NENGAJO_ADDRESS,
     abi: PublicNengajoABI.abi,
     functionName,
     args
