@@ -14,6 +14,7 @@ import {
   Text,
   useDisclosure
 } from '@chakra-ui/react'
+import useTranslation from 'next-translate/useTranslation'
 import { FC, useCallback, useMemo, useState } from 'react'
 
 type Props = {
@@ -21,6 +22,7 @@ type Props = {
 }
 
 const SecretMessage: FC<Props> = ({ metadata }) => {
+  const { t } = useTranslation('common')
   const { decrypt } = useLitDecryption(1)
   const [message, setMessage] = useState<string>()
   const { isOpen, onOpen, onClose } = useDisclosure()
@@ -54,9 +56,9 @@ const SecretMessage: FC<Props> = ({ metadata }) => {
         isLoading={!metadata}
         disabled={!metadata}
       >
-        NFTホルダー限定の
+        {t('LIMIT_HOLDER')}
         <br />
-        メッセージ・カードをみる
+        {t('SEE_SECRET')}
       </Button>
 
       <Modal isOpen={isOpen} onClose={onClose} size="xl">
