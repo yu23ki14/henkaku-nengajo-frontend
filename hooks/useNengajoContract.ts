@@ -102,11 +102,15 @@ export const useMintNengajoWithMx = () => {
         data
       })
 
-      await fetch(AUTOTASK_WEBHOOK_URL, {
+      const res = await fetch(AUTOTASK_WEBHOOK_URL, {
         method: 'POST',
         body: JSON.stringify(request),
         headers: { 'Content-Type': 'application/json' }
       })
+      const body = res?.body as any
+      if (body.status === 'error') {
+        throw new Error(body)
+      }
       return
     } catch (error) {
       setIsLoading(false)

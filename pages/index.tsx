@@ -88,6 +88,7 @@ const Entity = () => {
   const submit = async () => {
     try {
       await sendMetaTx()
+      return
     } catch (error: any) {
       toast({
         id: 'MINT_NENGAJO_MTX_FAILED',
