@@ -77,13 +77,38 @@ const Entity = () => {
   const { data: currentSupply, isLoading: isLoadingCurrentSupply } =
     useCurrentSupply()
   const { isHolding, isLoading: isLoadingHold } = useIsHoldingByTokenId(1)
-  const { wrongNetwork } = useChainId()
+  const { wrongNetwork, chainId } = useChainId()
   const { switchNetworkAsync, status: switchNetworkStatus } = useSwitchNetwork({
     chainId: 137
   })
   const toast = useToast()
   const tokenInfo = useRetrieveNengajoByTokenId(1)
   const { nengajoInfo } = useNengajoInfo(tokenInfo.data)
+
+  const switchOrAddNetwork = async () => {
+    if (!switchNetworkAsync || !window.ethereum) return
+    try {
+      await switchNetworkAsync(Number(process.env.NEXT_PUBLIC_CHAIN_ID!))
+    } catch (error) {
+      await window.ethereum.request({
+        method: 'wallet_addEthereumChain',
+        params: [
+          {
+            chainId: '0x' + chainId.toString(16),
+            blockExplorerUrls: ['https://polygonscan.com'],
+            chainName: 'Polygon Mainnet',
+            nativeCurrency: {
+              decimals: 18,
+              name: 'Polygon',
+              symbol: 'MATIC'
+            },
+            rpcUrls: ['https://polygon-rpc.com']
+          }
+        ]
+      })
+      await switchNetworkAsync(Number(process.env.NEXT_PUBLIC_CHAIN_ID!))
+    }
+  }
 
   const submit = async () => {
     try {
@@ -116,9 +141,7 @@ const Entity = () => {
           size="lg"
           colorScheme="teal"
           borderRadius="full"
-          onClick={() =>
-            switchNetworkAsync(Number(process.env.NEXT_PUBLIC_CHAIN_ID!))
-          }
+          onClick={() => switchOrAddNetwork()}
           isLoading={switchNetworkStatus === 'loading'}
         >
           Change Network
